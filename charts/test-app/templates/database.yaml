@@ -76,10 +76,19 @@ spec:
       repos:
         - name: repo1
           # S3 storage for backups
+          # Credentials are managed centrally in the operator namespace
+          # Applications do NOT have access to S3 credentials
           s3:
             bucket: {{ .Values.database.backup.bucket | default "bigap-backups" }}
             endpoint: {{ .Values.database.backup.endpoint | default "s3.fr-par.scw.cloud" }}
             region: {{ .Values.database.backup.region | default "fr-par" }}
+
+          # Reference to centralized S3 credentials secret (in operator namespace)
+          # This secret is created once for ALL databases
+          s3Secret:
+            name: s3-backup-credentials
+            # Secret is in the operator namespace, not in the app namespace
+            # This ensures apps cannot access S3 credentials
 
           # Backup schedules
           schedules:

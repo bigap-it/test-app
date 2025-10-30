@@ -20,51 +20,49 @@ metadata:
     app: {{ .Chart.Name }}
     environment: {{ .Values.environment }}
 spec:
-  # PostgreSQL version
+  # Operator version
   crVersion: 2.4.1
 
-  # Image
-  image: percona/percona-postgresql-operator:2.4.1-ppg16-postgres
+  # PostgreSQL version (required)
+  postgresVersion: 16
 
-  # PostgreSQL configuration
-  postgres:
-    # PostgreSQL version 16
-    image: percona/percona-postgresql-operator:2.4.1-ppg16-postgres
+  # Operator image
+  image: percona/percona-postgresql-operator:2.4.1-ppg16.3-postgres
 
-    # Single instance (for HA use 3 replicas)
-    instances:
-      - name: instance1
-        replicas: {{ .Values.database.replicas | default 1 }}
+  # PostgreSQL instances configuration
+  instances:
+    - name: instance1
+      replicas: {{ .Values.database.replicas | default 1 }}
 
-        # Resources - Small configuration
+      # Resources - Small configuration
+      resources:
+        requests:
+          cpu: {{ .Values.database.cpu | default "100m" }}
+          memory: {{ .Values.database.memory | default "256Mi" }}
+        limits:
+          cpu: {{ .Values.database.cpuLimit | default "500m" }}
+          memory: {{ .Values.database.memoryLimit | default "512Mi" }}
+
+      # Storage
+      dataVolumeClaimSpec:
+        accessModes:
+          - ReadWriteOnce
         resources:
           requests:
-            cpu: {{ .Values.database.cpu | default "100m" }}
-            memory: {{ .Values.database.memory | default "256Mi" }}
-          limits:
-            cpu: {{ .Values.database.cpuLimit | default "500m" }}
-            memory: {{ .Values.database.memoryLimit | default "512Mi" }}
+            storage: {{ .Values.database.storage | default "10Gi" }}
 
-        # Storage
-        dataVolumeClaimSpec:
-          accessModes:
-            - ReadWriteOnce
-          resources:
-            requests:
-              storage: {{ .Values.database.storage | default "10Gi" }}
-
-        # Anti-affinity for HA (spread replicas across nodes)
-        {{- if gt (int (.Values.database.replicas | default 1)) 1 }}
-        affinity:
-          podAntiAffinity:
-            preferredDuringSchedulingIgnoredDuringExecution:
-              - weight: 100
-                podAffinityTerm:
-                  labelSelector:
-                    matchLabels:
-                      app: {{ .Chart.Name }}
-                  topologyKey: kubernetes.io/hostname
-        {{- end }}
+      # Anti-affinity for HA (spread replicas across nodes)
+      {{- if gt (int (.Values.database.replicas | default 1)) 1 }}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: {{ .Chart.Name }}
+                topologyKey: kubernetes.io/hostname
+      {{- end }}
 
   # Backups configuration
   backups:

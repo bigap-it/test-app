@@ -1,5 +1,7 @@
 replicaCount: 1
 
+environment: dev  # Override in ApplicationSet for prod
+
 image:
   repository: nginx
   pullPolicy: IfNotPresent
@@ -12,14 +14,16 @@ service:
 ingress:
   enabled: true
   className: traefik
+  # Hostname will be: test-app.{environment}.bigap.fr
+  domain: bigap.fr
   hosts:
-    - host: test-app.dev.bigap.fr
+    - host: test-app.dev.bigap.fr  # Default for dev
       paths:
         - path: /
           pathType: Prefix
   tls:
     - hosts:
-        - test-app.dev.bigap.fr
+        - test-app.dev.bigap.fr  # Default for dev
 
 resources:
   limits:

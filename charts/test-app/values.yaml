@@ -31,3 +31,31 @@ resources:
   requests:
     cpu: 50m
     memory: 64Mi
+
+# PostgreSQL Database configuration
+database:
+  # Small configuration by default (dev)
+  replicas: 1
+  cpu: "100m"
+  cpuLimit: "500m"
+  memory: "256Mi"
+  memoryLimit: "512Mi"
+  storage: "10Gi"
+
+  # Backup configuration
+  backup:
+    bucket: "bigap-backups"
+    endpoint: "s3.fr-par.scw.cloud"
+    region: "fr-par"
+    schedule: "0 2 * * *"  # Daily at 2am
+    # Note: Retention is managed by S3 bucket lifecycle policy (1 week)
+
+  # Connection pooler (disabled by default)
+  pooler:
+    enabled: false
+    replicas: 1
+
+  # Monitoring (disabled by default)
+  monitoring:
+    enabled: false
+    pmmServer: ""

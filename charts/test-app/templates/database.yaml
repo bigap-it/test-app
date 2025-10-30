@@ -1,0 +1,136 @@
+# PostgreSQL Database Template - Small Configuration
+# This template provides a small PostgreSQL instance with daily backups
+#
+# Usage: Copy this file to your application's charts/templates/ directory
+# and customize the metadata name and namespace
+#
+# Resources:
+#   - CPU: 100m request, 500m limit
+#   - Memory: 256Mi request, 512Mi limit
+#   - Storage: 10Gi
+#   - Replicas: 1 (use postgresql-ha.yaml for production HA)
+#   - Backups: Daily at 2am, kept for 7 days
+
+apiVersion: pgv2.percona.com/v2
+kind: PerconaPGCluster
+metadata:
+  name: {{ .Chart.Name }}-db
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Chart.Name }}
+    environment: {{ .Values.environment }}
+spec:
+  # PostgreSQL version
+  crVersion: 2.4.1
+
+  # Image
+  image: percona/percona-postgresql-operator:2.4.1-ppg16-postgres
+
+  # PostgreSQL configuration
+  postgres:
+    # PostgreSQL version 16
+    image: percona/percona-postgresql-operator:2.4.1-ppg16-postgres
+
+    # Single instance (for HA use 3 replicas)
+    instances:
+      - name: instance1
+        replicas: {{ .Values.database.replicas | default 1 }}
+
+        # Resources - Small configuration
+        resources:
+          requests:
+            cpu: {{ .Values.database.cpu | default "100m" }}
+            memory: {{ .Values.database.memory | default "256Mi" }}
+          limits:
+            cpu: {{ .Values.database.cpuLimit | default "500m" }}
+            memory: {{ .Values.database.memoryLimit | default "512Mi" }}
+
+        # Storage
+        dataVolumeClaimSpec:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: {{ .Values.database.storage | default "10Gi" }}
+
+        # Anti-affinity for HA (spread replicas across nodes)
+        {{- if gt (int (.Values.database.replicas | default 1)) 1 }}
+        affinity:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+              - weight: 100
+                podAffinityTerm:
+                  labelSelector:
+                    matchLabels:
+                      app: {{ .Chart.Name }}
+                  topologyKey: kubernetes.io/hostname
+        {{- end }}
+
+  # Backups configuration
+  backups:
+    pgbackrest:
+      # Backup image
+      image: percona/percona-postgresql-operator:2.4.1-ppg16-pgbackrest
+
+      # Backup repository configuration
+      repos:
+        - name: repo1
+          # S3 storage for backups
+          s3:
+            bucket: {{ .Values.database.backup.bucket | default "bigap-backups" }}
+            endpoint: {{ .Values.database.backup.endpoint | default "s3.fr-par.scw.cloud" }}
+            region: {{ .Values.database.backup.region | default "fr-par" }}
+
+          # Backup schedules
+          schedules:
+            # Full backup daily at 2am
+            full: {{ .Values.database.backup.schedule | default "0 2 * * *" | quote }}
+            # Incremental backup every 6 hours (optional, can be disabled)
+            {{- if .Values.database.backup.incremental }}
+            incremental: {{ .Values.database.backup.incremental | quote }}
+            {{- end }}
+
+          # Retention policy - keep backups for 7 days
+          retention:
+            full: {{ .Values.database.backup.retention | default 7 }}
+            fullType: time
+
+      # Resources for backup jobs
+      jobs:
+        resources:
+          requests:
+            cpu: 50m
+            memory: 128Mi
+          limits:
+            memory: 256Mi
+
+  # Connection pooler (PgBouncer) - optional, disabled by default
+  {{- if .Values.database.pooler.enabled }}
+  proxy:
+    pgBouncer:
+      image: percona/percona-postgresql-operator:2.4.1-ppg16-pgbouncer
+      replicas: {{ .Values.database.pooler.replicas | default 1 }}
+      resources:
+        requests:
+          cpu: 50m
+          memory: 64Mi
+        limits:
+          memory: 128Mi
+  {{- end }}
+
+  # Monitoring (PMM) - disabled by default to save resources
+  {{- if .Values.database.monitoring.enabled }}
+  pmm:
+    enabled: true
+    image: percona/pmm-client:2
+    serverHost: {{ .Values.database.monitoring.pmmServer }}
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        memory: 128Mi
+  {{- end }}
+
+  # Secrets management
+  secretsName: {{ .Chart.Name }}-db-pguser-{{ .Chart.Name }}-db

@@ -1,0 +1,29 @@
+replicaCount: 1
+
+image:
+  repository: nginx
+  pullPolicy: IfNotPresent
+  tag: "1.25-alpine"
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: true
+  className: traefik
+  hosts:
+    - host: test-app.dev.bigap.fr
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - hosts:
+        - test-app.dev.bigap.fr
+
+resources:
+  limits:
+    memory: 128Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi

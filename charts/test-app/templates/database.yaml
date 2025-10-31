@@ -81,12 +81,11 @@ spec:
             endpoint: {{ .Values.database.backup.endpoint | default "s3.fr-par.scw.cloud" }}
             region: {{ .Values.database.backup.region | default "fr-par" }}
 
-          # Reference to centralized S3 credentials secret (in operator namespace)
-          # This secret is created once for ALL databases
+          # Reference to per-app S3 credentials secret
+          # This secret is created by ExternalSecret from Vault path: secret/<app-name>/s3-backup
+          # Credentials are unique per app and restricted to bucket/<app-name>/* prefix
           s3Secret:
-            name: s3-backup-credentials
-            # Secret is in the operator namespace, not in the app namespace
-            # This ensures apps cannot access S3 credentials
+            name: {{ .Chart.Name }}-s3-backup
 
           # Backup schedules
           schedules:

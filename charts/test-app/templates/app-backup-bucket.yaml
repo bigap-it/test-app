@@ -1,0 +1,37 @@
+---
+# AppBackupBucket Resource
+# This custom resource triggers Crossplane to create dedicated S3 backup credentials
+#
+# What it does:
+#   1. Creates Scaleway IAM Application (service account)
+#   2. Creates Scaleway IAM Policy (S3 access restricted to bucket/<app-name>/*)
+#   3. Generates Scaleway API Key (S3 credentials)
+#   4. Stores credentials in Vault at secret/<app-name>/s3-backup
+#
+# The credentials are then fetched by the s3-backup-externalsecret.yaml template
+# and used by PostgreSQL pgBackRest for automated backups.
+#
+# Usage: Include this template in your app's Helm chart before postgresql-small.yaml
+#
+# Prerequisites:
+#   - Crossplane installed with Scaleway and Vault providers
+#   - AppBackupBucket Composition deployed
+#   - Crossplane has Vault token with write permissions
+
+apiVersion: platform.bigap.fr/v1alpha1
+kind: AppBackupBucket
+metadata:
+  name: {{ .Chart.Name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Chart.Name }}
+    managed-by: crossplane
+spec:
+  # S3 bucket name (shared across apps, but each app has unique credentials)
+  bucket: {{ .Values.database.backup.bucket | default "bigap-backups" }}
+
+  # Scaleway region
+  region: {{ .Values.database.backup.region | default "fr-par" }}
+
+  # Environment (dev/prod)
+  environment: {{ .Values.environment | default "dev" }}

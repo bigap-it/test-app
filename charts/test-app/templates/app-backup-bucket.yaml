@@ -27,11 +27,16 @@ metadata:
     app: {{ .Chart.Name }}
     managed-by: crossplane
 spec:
+  # Scaleway organization ID (injected automatically by ApplicationSet)
+  organizationId: {{ .Values.scaleway.organizationId }}
+
   # S3 bucket name (shared across apps, but each app has unique credentials)
   bucket: {{ .Values.database.backup.bucket | default "bigap-backups" }}
 
-  # Scaleway region
-  region: {{ .Values.database.backup.region | default "fr-par" }}
+  # Scaleway region (injected automatically by ApplicationSet)
+  region: {{ .Values.scaleway.region }}
 
-  # Environment (dev/prod)
-  environment: {{ .Values.environment | default "dev" }}
+  # Vault configuration
+  vault:
+    address: "http://192.168.1.111:8200"
+    mount: "secret"

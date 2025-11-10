@@ -1,0 +1,49 @@
+# Development environment overrides
+# This file contains dev-specific configuration that overrides values.yaml
+
+environment: dev
+
+# Dev-specific ingress configuration
+ingress:
+  hosts:
+    - host: test-app.dev.bigap.fr
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - hosts:
+        - test-app.dev.bigap.fr
+
+# Smaller resources for dev
+resources:
+  limits:
+    memory: 128Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
+# Database configuration for dev
+database:
+  replicas: 1
+  cpu: "100m"
+  cpuLimit: "500m"
+  memory: "256Mi"
+  memoryLimit: "512Mi"
+  storage: "10Gi"
+
+  # S3 backup configuration
+  backup:
+    bucket: "bigap-backups"
+    endpoint: "s3.fr-par.scw.cloud"
+    region: "fr-par"
+    schedule: "0 2 * * *"  # Daily at 2am
+    retention: 7  # Keep backups for 7 days
+
+  # PgBouncer enabled for testing
+  pooler:
+    enabled: true
+    replicas: 1
+
+  # Monitoring disabled in dev
+  monitoring:
+    enabled: false

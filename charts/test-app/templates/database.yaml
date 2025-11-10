@@ -70,22 +70,20 @@ spec:
       # Backup image
       image: percona/percona-postgresql-operator:2.4.1-ppg16-pgbackrest
 
+      # S3 credentials configuration
+      # Reference to the secret containing S3 credentials
+      configuration:
+        - secret:
+            name: {{ .Chart.Name }}-s3-backup
+
       # Backup repository configuration
       repos:
         - name: repo1
           # S3 storage for backups
-          # Credentials are managed centrally in the operator namespace
-          # Applications do NOT have access to S3 credentials
           s3:
             bucket: {{ .Values.database.backup.bucket | default "bigap-backups" }}
             endpoint: {{ .Values.database.backup.endpoint | default "s3.fr-par.scw.cloud" }}
             region: {{ .Values.database.backup.region | default "fr-par" }}
-
-          # Reference to per-app S3 credentials secret
-          # This secret is created by ExternalSecret from Vault path: secret/<app-name>/s3-backup
-          # Credentials are unique per app and restricted to bucket/<app-name>/* prefix
-          s3Secret:
-            name: {{ .Chart.Name }}-s3-backup
 
           # Backup schedules
           schedules:
